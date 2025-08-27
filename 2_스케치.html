@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fusion 360 1일차: AI 강화 학습 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Neutral Palette -->
+    <!-- Application Structure Plan: A task-oriented, interactive tutorial SPA. The layout is a two-column design. A sticky left sidebar visualizes the entire modeling process, acting as a clickable navigation menu. The main right content area dynamically displays detailed instructions for the selected step. This structure enhances usability by providing clear context and navigation, allowing users to jump between steps easily. Interactive elements like tabs for comparing methods ('Extrude Cut' vs. 'Shell') and a clickable glossary for key functions are included to foster active learning rather than passive reading, which is more effective for a practical tutorial. -->
+    <!-- Visualization & Content Choices: Report Info: Fusion 360 tutorial steps -> Goal: Guide users through a linear modeling process interactively -> Viz/Presentation Method: A clickable HTML/CSS process flow diagram for navigation, tabbed content for method comparison, and interactive hotspots on placeholder images to explain UI elements. -> Interaction: Users click on process steps to view details, switch between tabs to compare techniques, and click on key terms to see definitions. -> Justification: The source content is procedural, not statistical. Therefore, traditional data charts (e.g., bar, line) are inappropriate as they cannot meaningfully represent modeling dimensions or steps. The chosen interactive HTML elements provide a much more effective and contextually relevant way to present and explore the tutorial content. -> Library/Method: Vanilla JS for all interactions. Chart.js is included to meet requirements but not used as no meaningful data is available to chart. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+        }
+        .active-step {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .tab-btn.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .gemini-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            margin-left: 4px;
+            padding: 2px;
+            transition: transform 0.2s;
+        }
+        .gemini-btn:hover {
+            transform: scale(1.2);
+        }
+        #gemini-modal {
+            display: none;
+        }
+        #gemini-modal.show {
+            display: flex;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3b82f6;
+            animation: spin 1s ease infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+        <header class="text-center mb-10 md:mb-16">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Fusion 360으로 만드는 3D 생활 소품</h1>
+            <p class="text-lg md:text-xl text-blue-600 font-semibold mt-2">1일차: 나만의 트레이 만들기 (AI 강화 ✨)</p>
+        </header>
+
+        <div class="flex flex-col md:flex-row gap-8">
+            <!-- Left Sidebar: Process Navigation -->
+            <aside class="md:w-1/4 lg:w-1/5 md:sticky top-8 h-full">
+                <h2 class="text-lg font-bold mb-4 border-b pb-2">모델링 과정</h2>
+                <nav id="step-navigation" class="flex flex-row md:flex-col gap-2">
+                    <button data-step="1" class="step-btn w-full text-left p-3 border rounded-lg transition-all duration-200 hover:bg-blue-100 hover:border-blue-400">
+                        <span class="font-semibold">1. 준비</span>: 컴포넌트 & 스케치
+                    </button>
+                    <div class="hidden md:block self-center h-6 border-l-2 border-gray-300"></div>
+                    <button data-step="2" class="step-btn w-full text-left p-3 border rounded-lg transition-all duration-200 hover:bg-blue-100 hover:border-blue-400">
+                        <span class="font-semibold">2. 입체화</span>: 돌출 (Extrude)
+                    </button>
+                    <div class="hidden md:block self-center h-6 border-l-2 border-gray-300"></div>
+                    <button data-step="3" class="step-btn w-full text-left p-3 border rounded-lg transition-all duration-200 hover:bg-blue-100 hover:border-blue-400">
+                        <span class="font-semibold">3. 속 파내기</span>: Shell & Cut
+                    </button>
+                    <div class="hidden md:block self-center h-6 border-l-2 border-gray-300"></div>
+                    <button data-step="4" class="step-btn w-full text-left p-3 border rounded-lg transition-all duration-200 hover:bg-blue-100 hover:border-blue-400">
+                        <span class="font-semibold">4. 다듬기</span>: 필렛 (Fillet)
+                    </button>
+                    <div class="hidden md:block self-center h-6 border-l-2 border-gray-300"></div>
+                     <button data-step="5" class="step-btn w-full text-left p-3 border rounded-lg transition-all duration-200 hover:bg-blue-100 hover:border-blue-400">
+                        <span class="font-semibold">5. 응용</span>: 칸막이 추가
+                    </button>
+                </nav>
+            </aside>
+
+            <!-- Right Main Content -->
+            <main class="md:w-3/4 lg:w-4/5">
+                <div id="content-container" class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
+                    
+                    <!-- Step 0: Welcome -->
+                    <section id="step-content-0" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-700 mb-4">학습을 시작해 보세요!</h2>
+                        <p class="text-base leading-relaxed">안녕하세요! Fusion 360으로 나만의 3D 소품을 만드는 첫날입니다. 오늘은 3D 모델링의 가장 기초적인 원리를 배우면서 책상 위를 깔끔하게 정리해 줄 '사각 트레이'를 만들어 볼 거예요.</p>
+                        <p class="mt-4 text-base leading-relaxed">왼쪽의 '모델링 과정' 메뉴를 클릭해서 각 단계를 순서대로 따라 해보세요. 각 단계별로 자세한 설명과 영상 속 핵심 팁이 준비되어 있습니다. 어려운 용어 옆에는 ✨ 아이콘이 있으니 클릭해서 AI의 도움을 받아보세요!</p>
+                        <div class="mt-6 bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg">
+                            <p class="font-semibold">학습 목표</p>
+                            <ul class="list-disc list-inside mt-2">
+                                <li>Fusion 360의 기본 화면과 조작법 익히기</li>
+                                <li>2D 스케치를 3D 모델로 만드는 과정 이해하기</li>
+                                <li>Extrude, Shell, Fillet 등 핵심 기능 사용하기</li>
+                                <li>✨ AI를 활용하여 학습 효율 높이기</li>
+                            </ul>
+                        </div>
+                    </section>
+
+                    <!-- Step 1: Component & Sketch -->
+                    <section id="step-content-1" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-700 mb-4">1. 준비: 컴포넌트 & 스케치</h2>
+                        <p class="mb-6 text-base leading-relaxed">모든 3D 모델링은 '어떤 부품을 만들 것인가'를 정의하는 것에서 시작합니다. 그 다음, 3D의 바탕이 되는 2D 설계도, 즉 '스케치'를 그립니다.</p>
+                        
+                        <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                            <h3 class="font-semibold text-lg mb-2 flex items-center">1-1. 새 컴포넌트 만들기 <button class="gemini-btn" data-term="Component">✨</button></h3>
+                            <p>모델링 작업을 시작하기 전, 독립된 부품 서랍인 '컴포넌트'를 만드는 습관이 중요합니다. 이렇게 해야 작업이 엉키지 않고 깔끔하게 관리됩니다.</p>
+                            <p class="mt-2 p-3 bg-white rounded shadow-sm font-mono text-sm text-gray-700">`Assemble` > `New Component` > `OK`</p>
+                        </div>
+
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <h3 class="font-semibold text-lg mb-2 flex items-center">1-2. 트레이 밑그림 그리기 <button class="gemini-btn" data-term="Sketch">✨</button></h3>
+                            <p>3D의 기본 설계도인 2D 스케치를 그립니다. 바닥 평면(XY Plane)에 중심점을 기준으로 사각형을 그리고, 정확한 치수를 입력합니다.</p>
+                            <ul class="list-decimal list-inside space-y-2 mt-3 pl-2">
+                                <li>`Create Sketch` 클릭 후, 바닥 평면(빨강-초록 축 사이) 선택</li>
+                                <li>`Create > Rectangle > Center Rectangle`로 원점에서 사각형 그리기</li>
+                                <li>`Sketch Dimension` (단축키 `D`)으로 가로 <strong>100mm</strong>, 세로 <strong>50mm</strong> 치수 입력</li>
+                                <li>`Finish Sketch` 클릭하여 스케치 마무리</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r-lg">
+                                <span class="font-bold">⭐ 핵심 팁:</span> 치수 기입 후 스케치 선이 모두 검은색으로 변하면 '완전 구속' 상태입니다. 이는 수정과 관리가 용이한 좋은 스케치라는 의미입니다.
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Step 2: Extrude -->
+                    <section id="step-content-2" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-700 mb-4 flex items-center">2. 입체화: 돌출 (Extrude) <button class="gemini-btn" data-term="Extrude">✨</button></h2>
+                        <p class="mb-6 text-base leading-relaxed">2D 스케치에 두께를 부여하여 3D 입체 형상으로 만드는 가장 기본적이고 강력한 기능입니다.</p>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <h3 class="font-semibold text-lg mb-2">트레이 몸체 만들기 (영상 07:00 ~ 08:30)</h3>
+                            <p>완성된 사각형 스케치 면을 위로 잡아당겨 3차원 박스 형태로 만듭니다.</p>
+                             <ul class="list-decimal list-inside space-y-2 mt-3 pl-2">
+                                <li>스케치 면을 클릭하여 선택 (파란색으로 변함)</li>
+                                <li>`Extrude` (단축키 `E`) 실행</li>
+                                <li>높이(Distance) 값으로 <strong>10mm</strong> 입력 후 `OK`</li>
+                            </ul>
+                             <div class="mt-4 p-3 bg-green-50 border-l-4 border-green-500 text-green-800 rounded-r-lg">
+                                <span class="font-bold">💡 알아두기:</span> Extrude 기능은 단순히 입체를 만드는 것(Join) 외에도, 파내거나(Cut), 교차하는 부분만 남기는(Intersect) 등 다양하게 활용됩니다.
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Step 3: Hollowing Out -->
+                    <section id="step-content-3" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-700 mb-4">3. 속 파내기: Shell vs Extrude Cut</h2>
+                        <p class="mb-6 text-base leading-relaxed">트레이의 내부를 비워내 물건을 담을 공간을 만듭니다. 이 작업에는 두 가지 대표적인 방법이 있습니다. 아래 탭을 클릭하여 각 방법의 차이점을 비교해 보세요.</p>
+                        
+                        <div class="border-b border-gray-200 mb-4">
+                            <nav class="flex space-x-4" id="method-tabs">
+                                <button data-tab="shell" class="tab-btn font-semibold py-2 px-1 text-gray-500">방법 1: Shell 기능</button>
+                                <button data-tab="cut" class="tab-btn font-semibold py-2 px-1 text-gray-500">방법 2: Extrude Cut</button>
+                            </nav>
+                        </div>
+
+                        <div id="tab-content-shell" class="tab-content bg-gray-100 p-4 rounded-lg">
+                            <h3 class="font-semibold text-lg mb-2 flex items-center">더 쉽고 빠른 'Shell' 기능 <button class="gemini-btn" data-term="Shell">✨</button></h3>
+                            <p>모델의 특정 면을 터서, 마치 조개껍데기처럼 일정한 두께를 남기고 속을 파내는 가장 효율적인 방법입니다.</p>
+                             <ul class="list-decimal list-inside space-y-2 mt-3 pl-2">
+                                <li>`Modify > Shell` 실행</li>
+                                <li>트레이의 윗면을 클릭하여 제거할 면으로 선택</li>
+                                <li>벽 두께(Thickness)를 <strong>2mm</strong>로 입력하면 완성!</li>
+                            </ul>
+                            <p class="mt-4 font-semibold text-blue-600">장점: 매우 빠르고 간편하며, 복잡한 형태에도 잘 적용됩니다.</p>
+                        </div>
+
+                        <div id="tab-content-cut" class="tab-content bg-gray-100 p-4 rounded-lg">
+                            <h3 class="font-semibold text-lg mb-2">스케치로 파내는 'Extrude Cut'</h3>
+                            <p>파낼 모양을 직접 스케치한 뒤, Extrude 기능을 'Cut' 모드로 사용하여 파내는 정석적인 방법입니다.</p>
+                             <ul class="list-decimal list-inside space-y-2 mt-3 pl-2">
+                                <li>트레이 윗면에 `Create Sketch`</li>
+                                <li>`Offset` (단축키 `O`)으로 바깥 테두리에서 안쪽으로 <strong>-2mm</strong> 간격의 사각형 생성</li>
+                                <li>`Finish Sketch` 후, 안쪽 사각형 면을 선택하고 `Extrude` (단축키 `E`) 실행</li>
+                                <li>아래쪽으로 <strong>-8mm</strong> 만큼 파내기 (Distance = -8mm)</li>
+                            </ul>
+                             <p class="mt-4 font-semibold text-gray-600">장점: 파내는 깊이나 모양을 자유롭게 조절할 수 있습니다.</p>
+                        </div>
+                    </section>
+
+                    <!-- Step 4: Fillet -->
+                    <section id="step-content-4" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-700 mb-4 flex items-center">4. 다듬기: 필렛 (Fillet) <button class="gemini-btn" data-term="Fillet">✨</button></h2>
+                        <p class="mb-6 text-base leading-relaxed">날카로운 모서리를 부드럽게 둥글려주는 기능입니다. 모델의 완성도를 높이고 실제 제품처럼 보이게 하는 중요한 마감 작업입니다.</p>
+                        <div class="bg-gray-100 p-4 rounded-lg">
+                            <h3 class="font-semibold text-lg mb-2">모서리 둥글게 깎기 (영상 14:00 ~ 20:00)</h3>
+                            <p>트레이의 안쪽과 바깥쪽 모서리를 각각 다른 값으로 둥글게 처리하여 자연스러운 형태를 만듭니다.</p>
+                             <ul class="list-decimal list-inside space-y-2 mt-3 pl-2">
+                                <li>`Modify > Fillet` (단축키 `F`) 실행</li>
+                                <li><strong>바깥쪽 바닥 모서리 선</strong> 선택 후, 반지름(Radius) <strong>5mm</strong> 적용</li>
+                                <li>다시 `Fillet` 실행, <strong>안쪽 바닥 모서리 선</strong> 선택 후, 반지름 <strong>3mm</strong> 적용</li>
+                                <li>마지막으로 <strong>윗면 테두리(안/밖)</strong> 선택 후, 반지름 <strong>1mm</strong> 적용하여 마무리</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded-r-lg">
+                                <span class="font-bold">⭐ 핵심 팁:</span> Fillet 작업 시, 값이 큰 모서리부터 작은 모서리 순서로 진행하면 오류 없이 안정적으로 작업할 수 있습니다.
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Step 5: Application -->
+                    <section id="step-content-5" class="content-section">
+                        <h2 class="text-2xl font-bold text-blue-700 mb-4">5. 응용: 칸막이 추가</h2>
+                        <p class="mb-6 text-base leading-relaxed">지금까지 배운 기능들을 모두 활용하여 트레이 내부에 칸막이를 만들어 봅시다. 새로운 기능 없이, 배운 것만으로도 충분히 응용이 가능합니다.</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-8">
+                            <h3 class="font-semibold text-lg mb-2">배운 기능 총동원하기 (영상 20:00 ~ 끝)</h3>
+                            <p>트레이 안쪽 바닥에 새로운 스케치를 그리고, 돌출시켜 기존 몸체와 합치는 방식으로 칸막이를 만듭니다.</p>
+                             <ul class="list-decimal list-inside space-y-2 mt-3 pl-2">
+                                <li>트레이 안쪽 바닥면에 `Create Sketch`</li>
+                                <li>`Center Rectangle`로 칸막이 스케치 (예: 10mm x 46mm)</li>
+                                <li>`Finish Sketch` 후, 칸막이 스케치를 `Extrude` (단축키 `E`)</li>
+                                <li>돌출 높이는 트레이 윗면까지, Operation은 **'Join'**으로 설정하여 기존 몸체와 합치기</li>
+                                <li>칸막이 모서리도 `Fillet` (단축키 `F`)으로 부드럽게 다듬어주면 완성!</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-blue-50 border-t-4 border-blue-300 p-6 rounded-b-lg">
+                            <h3 class="font-bold text-xl text-blue-800 mb-4">✨ AI 디자인 아이디어 생성기</h3>
+                            <p class="mb-4">오늘 배운 기능(Extrude, Shell, Fillet)으로 또 무엇을 만들 수 있을까요? 만들고 싶은 소품을 입력하고 AI에게 창의적인 아이디어를 얻어보세요!</p>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" id="idea-input" placeholder="예: 스마트폰 거치대, 연필꽂이, 화분" class="flex-grow p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                                <button id="generate-idea-btn" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">아이디어 생성</button>
+                            </div>
+                        </div>
+
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Gemini Modal -->
+    <div id="gemini-modal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md">
+            <div class="p-4 border-b flex justify-between items-center">
+                <h3 id="gemini-modal-title" class="text-lg font-bold text-gray-800">AI 설명</h3>
+                <button id="gemini-modal-close" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+            </div>
+            <div id="gemini-modal-content" class="p-6 min-h-[150px] flex items-center justify-center">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const stepButtons = document.querySelectorAll('#step-navigation .step-btn');
+            const contentSections = document.querySelectorAll('.content-section');
+            const tabButtons = document.querySelectorAll('#method-tabs .tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const geminiTermButtons = document.querySelectorAll('.gemini-btn');
+            const generateIdeaBtn = document.getElementById('generate-idea-btn');
+            const ideaInput = document.getElementById('idea-input');
+            const modal = document.getElementById('gemini-modal');
+            const modalTitle = document.getElementById('gemini-modal-title');
+            const modalContent = document.getElementById('gemini-modal-content');
+            const modalCloseBtn = document.getElementById('gemini-modal-close');
+
+            function showContent(step) {
+                stepButtons.forEach(btn => {
+                    btn.classList.toggle('active-step', btn.dataset.step === step);
+                });
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', section.id === `step-content-${step}`);
+                });
+            }
+
+            function showTab(tab) {
+                tabButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tab);
+                });
+                tabContents.forEach(content => {
+                    content.classList.toggle('active', content.id === `tab-content-${tab}`);
+                });
+            }
+
+            stepButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    showContent(button.dataset.step);
+                });
+            });
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    showTab(button.dataset.tab);
+                });
+            });
+
+            // --- Gemini API Integration ---
+            
+            function showModal(title) {
+                modalTitle.textContent = title;
+                modalContent.innerHTML = '<div class="spinner"></div>';
+                modal.classList.add('show');
+            }
+
+            function hideModal() {
+                modal.classList.remove('show');
+            }
+            
+            modalCloseBtn.addEventListener('click', hideModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    hideModal();
+                }
+            });
+
+            async function callGemini(prompt, maxRetries = 3) {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+
+                for (let i = 0; i < maxRetries; i++) {
+                    try {
+                        const response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const result = await response.json();
+                        
+                        if (result.candidates && result.candidates.length > 0 &&
+                            result.candidates[0].content && result.candidates[0].content.parts &&
+                            result.candidates[0].content.parts.length > 0) {
+                            const text = result.candidates[0].content.parts[0].text;
+                            return text.replace(/\n/g, '<br>');
+                        } else {
+                            throw new Error("Invalid response structure from API");
+                        }
+                    } catch (error) {
+                        if (i === maxRetries - 1) {
+                           return "AI 모델을 호출하는 데 실패했습니다. 잠시 후 다시 시도해주세요.";
+                        }
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                    }
+                }
+            }
+
+            geminiTermButtons.forEach(button => {
+                button.addEventListener('click', async () => {
+                    const term = button.dataset.term;
+                    const prompt = `3D 모델링을 처음 배우는 초보자를 위해 Fusion 360의 '${term}' 기능에 대해 비유를 들어서 아주 쉽고 간단하게 2~3문장으로 설명해줘.`;
+                    showModal(`✨ ${term} AI 설명`);
+                    const responseText = await callGemini(prompt);
+                    modalContent.innerHTML = `<p class="text-base leading-relaxed">${responseText}</p>`;
+                });
+            });
+
+            generateIdeaBtn.addEventListener('click', async () => {
+                const userInput = ideaInput.value.trim();
+                if (!userInput) {
+                    alert("아이디어를 입력해주세요!");
+                    return;
+                }
+                const prompt = `Fusion 360의 Extrude, Shell, Fillet 기본 기능을 활용해서 만들 수 있는 '${userInput}'에 대한 창의적인 디자인 아이디어 3가지를 초보자가 따라할 수 있도록 간단하게 제안해줘. 각 아이디어는 제목과 간단한 설명으로 구성해줘.`;
+                showModal("✨ AI 디자인 아이디어");
+                const responseText = await callGemini(prompt);
+                modalContent.innerHTML = `<div class="text-left text-base leading-relaxed">${responseText}</div>`;
+            });
+
+            // Initial setup
+            showContent('0');
+            showTab('shell');
+        });
+    </script>
+
+</body>
+</html>
