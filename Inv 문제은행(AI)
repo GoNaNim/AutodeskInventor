@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 기반 인벤터 그림 문제 생성기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+        }
+        .option-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5);
+        }
+        .correct {
+            border-color: #22c55e !important;
+            background-color: #f0fdf4 !important;
+            color: #166534 !important;
+        }
+        .incorrect {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            color: #991b1b !important;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loader {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="p-8">
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">인벤터(Inventor) 실력 테스트 ✨</h1>
+            <p id="question-counter" class="text-slate-600 mb-6">문제 1: 그림을 보고 질문에 답하세요.</p>
+
+            <div id="quiz-container" class="space-y-6" data-topic="돌출(Extrude)" data-explanation="'돌출' 기능의 '차집합(Cut)' 옵션은 스케치한 프로파일의 모양대로 기존 3D 모델의 재료를 깎아내거나 구멍을 뚫는, 즉 재료를 제거(빼내는) 역할을 합니다. 그림의 아이콘 모양도 사각형에서 원기둥 모양이 빠져나가는 형태로 표현되어 있습니다.">
+                <!-- 문제 영역 -->
+                <div>
+                    <p id="question-text" class="text-lg font-semibold text-slate-900 mb-4">
+                        아래 '돌출' 대화상자 그림을 참고할 때, '작업(Operation)' 섹션에서 '차집합(Cut)' 옵션(두 번째 아이콘)을 선택하면 3D 모델에 어떤 결과가 발생합니까?
+                    </p>
+                    <div id="question-image-container" class="bg-slate-50 p-4 rounded-lg border border-slate-200 flex justify-center">
+                        <img id="question-image" src="https://i.imgur.com/gA8zY5k.png" alt="Inventor Extrude Dialog Box" class="rounded-md max-w-full h-auto shadow-sm">
+                    </div>
+                </div>
+
+                <!-- 선택지 영역 -->
+                <div id="options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button class="option-btn p-4 border-2 border-slate-200 rounded-lg text-left hover:bg-slate-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200" data-correct="false">
+                        <span class="font-semibold text-slate-700">① 기존 모델에 재료를 추가(더하는) 작업을 합니다.</span>
+                    </button>
+                    <button class="option-btn p-4 border-2 border-slate-200 rounded-lg text-left hover:bg-slate-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200" data-correct="true">
+                        <span class="font-semibold text-slate-700">② 기존 모델에서 재료를 제거(빼내는) 작업을 합니다.</span>
+                    </button>
+                    <button class="option-btn p-4 border-2 border-slate-200 rounded-lg text-left hover:bg-slate-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200" data-correct="false">
+                        <span class="font-semibold text-slate-700">③ 기존 모델과 교차하는 부분만 남기는 작업을 합니다.</span>
+                    </button>
+                    <button class="option-btn p-4 border-2 border-slate-200 rounded-lg text-left hover:bg-slate-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200" data-correct="false">
+                        <span class="font-semibold text-slate-700">④ 기존 모델과 상관없이 완전히 새로운 덩어리를 만듭니다.</span>
+                    </button>
+                </div>
+
+                <!-- 정답 및 해설 영역 -->
+                <div id="feedback-container" class="hidden p-5 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 id="feedback-title" class="text-lg font-bold"></h3>
+                    <p id="feedback-explanation" class="mt-2 text-slate-700"></p>
+                    <button id="ai-explain-btn" class="hidden mt-4 w-full sm:w-auto bg-violet-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-violet-700 transition-colors duration-200 flex items-center justify-center space-x-2">
+                        <span>✨ AI에게 더 물어보기</span>
+                    </button>
+                </div>
+
+                <!-- AI 응답 영역 -->
+                <div id="ai-feedback-container" class="hidden p-5 bg-slate-50 rounded-lg border border-violet-200">
+                    <div id="ai-loading" class="flex items-center space-x-3">
+                        <div class="loader"></div>
+                        <p class="text-slate-600 font-semibold">AI가 답변을 생성하고 있습니다...</p>
+                    </div>
+                    <div id="ai-response" class="hidden">
+                         <h3 class="text-lg font-bold text-violet-800">✨ AI 심화 설명</h3>
+                         <p id="ai-response-text" class="mt-2 text-slate-700 whitespace-pre-wrap"></p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 하단 액션 버튼 영역 -->
+        <div class="bg-slate-50 px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200">
+             <button id="copy-btn" class="w-full sm:w-auto bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                <span>HTML로 복사</span>
+            </button>
+            <button id="ai-next-question-btn" class="hidden w-full sm:w-auto bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <span>✨ AI 다음 문제 생성</span>
+            </button>
+            <button id="reset-btn" class="w-full sm:w-auto bg-slate-200 text-slate-800 font-bold py-2 px-4 rounded-lg hover:bg-slate-300 transition-colors duration-200 flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L20.49 2"></path><path d="M20.49 15a9 9 0 0 1-14.85 3.36L3.51 22"></path></svg>
+                <span>다시 풀기</span>
+            </button>
+            <textarea id="copy-target" class="absolute -left-full"></textarea>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const quizContainer = document.getElementById('quiz-container');
+        const optionsContainer = document.getElementById('options-container');
+        let optionBtns = document.querySelectorAll('.option-btn'); // Use let to allow re-assignment
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackExplanation = document.getElementById('feedback-explanation');
+        const aiExplainBtn = document.getElementById('ai-explain-btn');
+        const aiFeedbackContainer = document.getElementById('ai-feedback-container');
+        const aiLoading = document.getElementById('ai-loading');
+        const aiResponse = document.getElementById('ai-response');
+        const aiResponseText = document.getElementById('ai-response-text');
+        const resetBtn = document.getElementById('reset-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const aiNextQuestionBtn = document.getElementById('ai-next-question-btn');
+        const copyTarget = document.getElementById('copy-target');
+        const questionTextElement = document.getElementById('question-text');
+        const questionCounter = document.getElementById('question-counter');
+        const questionImage = document.getElementById('question-image');
+        const questionImageContainer = document.getElementById('question-image-container');
+
+
+        // State variables
+        let answered = false;
+        let userWasCorrect = false;
+        let userSelectionText = '';
+        let questionNumber = 1;
+
+        // Gemini API Configuration
+        const API_KEY = ""; // Keep this empty, it will be handled by the environment.
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        
+        async function callGeminiAPI(prompt) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: prompt }]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error("Gemini API call error:", error);
+                return "AI 응답을 가져오는 데 실패했습니다. 잠시 후 다시 시도해주세요.";
+            }
+        }
+        
+        async function getAiExplanation() {
+            aiFeedbackContainer.classList.remove('hidden');
+            aiLoading.style.display = 'flex';
+            aiResponse.style.display = 'none';
+            aiExplainBtn.disabled = true;
+            aiExplainBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const questionText = questionTextElement.innerText;
+            const correctOptionText = optionsContainer.querySelector('[data-correct="true"]').innerText;
+            
+            let prompt;
+            if (userWasCorrect) {
+                prompt = `You are an expert Autodesk Inventor instructor. A user correctly answered the following quiz question. Provide a more detailed explanation or a practical, advanced tip related to this Inventor feature that an intermediate user would find helpful. Keep the language professional but easy to understand. Please respond in Korean.
+
+Question: "${questionText}"
+Correct Answer: "${correctOptionText}"`;
+            } else {
+                prompt = `You are an expert Autodesk Inventor instructor. A user INCORRECTLY answered the following quiz question. First, explain clearly in one or two sentences *why* the user's selected answer is wrong. Then, briefly re-explain why the correct answer is right. Keep the language supportive and educational. Please respond in Korean.
+
+Question: "${questionText}"
+User's incorrect choice: "${userSelectionText}"
+Correct Answer: "${correctOptionText}"`;
+            }
+            
+            const aiText = await callGeminiAPI(prompt);
+            
+            aiResponseText.textContent = aiText;
+            aiLoading.style.display = 'none';
+            aiResponse.style.display = 'block';
+        }
+
+        async function generateNextQuestion() {
+            const originalBtnText = aiNextQuestionBtn.innerHTML;
+            aiNextQuestionBtn.innerHTML = `<div class="loader !w-5 !h-5 !border-2"></div><span>생성 중...</span>`;
+            aiNextQuestionBtn.disabled = true;
+            
+            const currentTopic = quizContainer.dataset.topic;
+            const prompt = `You are an Autodesk Inventor quiz generator. The last question was about '${currentTopic}'. Generate a new multiple-choice question about another fundamental Inventor feature like 'Revolve', 'Loft', 'Fillet', or 'Sweep'. Your response MUST be a single, valid JSON object with no other text, comments, or markdown formatting. The JSON must be perfectly parsable. The JSON object must have these keys: "topic" (string, the name of the new feature in Korean), "question" (string), "options" (an array of 4 strings), "correct_index" (a number from 0 to 3), "explanation" (string, a brief explanation of the correct answer in Korean), and "image_url" (a string URL to a relevant, publicly accessible image, or an empty string "" if no image is needed). Please provide the question, options, and explanation in Korean.`;
+            
+            try {
+                const responseText = await callGeminiAPI(prompt);
+                // AI 응답에 포함될 수 있는 Markdown 코드 블록을 제거합니다.
+                const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/);
+                const jsonString = jsonMatch ? jsonMatch[1].trim() : responseText.trim();
+                const quizData = JSON.parse(jsonString);
+                
+                updateQuizUI(quizData);
+            } catch (error) {
+                console.error("Failed to generate or parse new question:", error);
+                questionTextElement.textContent = "새로운 문제를 생성하는 데 실패했습니다. 잠시 후 다시 시도해 주세요.";
+                optionsContainer.innerHTML = '<p class="text-red-500 col-span-2">오류가 발생했습니다. "다시 풀기"를 눌러 초기화해주세요.</p>';
+            } finally {
+                 aiNextQuestionBtn.innerHTML = originalBtnText;
+                 aiNextQuestionBtn.disabled = false;
+                 resetQuiz(false); // Reset without resetting question number
+            }
+        }
+        
+        function updateQuizUI(data) {
+             questionNumber++;
+             quizContainer.dataset.topic = data.topic;
+             quizContainer.dataset.explanation = data.explanation;
+             questionCounter.textContent = `문제 ${questionNumber}: ${data.topic}`;
+             questionTextElement.textContent = data.question;
+
+             if (data.image_url && data.image_url.trim() !== "") {
+                 questionImage.src = data.image_url;
+                 questionImage.alt = `${data.topic} feature example`;
+                 questionImageContainer.style.display = 'flex';
+             } else {
+                 questionImageContainer.style.display = 'none';
+             }
+             
+             // Regenerate option buttons to ensure event listeners are fresh
+             optionsContainer.innerHTML = '';
+             data.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn p-4 border-2 border-slate-200 rounded-lg text-left hover:bg-slate-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200';
+                button.dataset.correct = (index === data.correct_index);
+                button.innerHTML = `<span class="font-semibold text-slate-700">${option}</span>`;
+                button.addEventListener('click', handleOptionClick);
+                optionsContainer.appendChild(button);
+             });
+             optionBtns = document.querySelectorAll('.option-btn');
+        }
+
+
+        function handleOptionClick(event) {
+            if (answered) return;
+            answered = true;
+
+            const selectedBtn = event.currentTarget;
+            userWasCorrect = selectedBtn.dataset.correct === 'true';
+            userSelectionText = selectedBtn.innerText;
+            
+            optionBtns.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-slate-50', 'hover:border-blue-400');
+            });
+            
+            if (userWasCorrect) {
+                selectedBtn.classList.add('correct');
+                feedbackTitle.textContent = '✅ 정답입니다!';
+                feedbackTitle.className = 'text-lg font-bold text-green-700';
+            } else {
+                selectedBtn.classList.add('incorrect');
+                feedbackTitle.textContent = '❌ 오답입니다.';
+                feedbackTitle.className = 'text-lg font-bold text-red-700';
+                
+                const correctBtn = optionsContainer.querySelector('[data-correct="true"]');
+                correctBtn.classList.add('correct');
+            }
+            
+            feedbackExplanation.textContent = quizContainer.dataset.explanation;
+            feedbackContainer.classList.remove('hidden');
+            aiExplainBtn.classList.remove('hidden');
+            aiNextQuestionBtn.classList.remove('hidden');
+        }
+
+        function resetQuiz(fullReset = true) {
+            if (fullReset) {
+                // This is a full reset, go back to the original question
+                location.reload(); 
+                return;
+            }
+
+            // This is a soft reset for the next question
+            answered = false;
+            userWasCorrect = false;
+            userSelectionText = '';
+
+            optionBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.className = 'option-btn p-4 border-2 border-slate-200 rounded-lg text-left hover:bg-slate-50 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 transition-all duration-200';
+            });
+
+            feedbackContainer.classList.add('hidden');
+            aiExplainBtn.classList.add('hidden');
+            aiExplainBtn.disabled = false;
+            aiExplainBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            aiNextQuestionBtn.classList.add('hidden');
+
+            aiFeedbackContainer.classList.add('hidden');
+            aiResponseText.textContent = '';
+        }
+
+        function copyToClipboard() {
+            const quizContent = document.getElementById('quiz-container').innerHTML;
+            const cleanHTML = `
+                <div style="font-family: sans-serif; border: 1px solid #e2e8f0; border-radius: 0.75rem; max-width: 672px; margin: auto; overflow-hidden;">
+                    <div style="padding: 2rem;">
+                        <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.5rem;">인벤터 퀴즈</h2>
+                        ${quizContent}
+                    </div>
+                </div>
+            `.replace(/class="[^"]*"/g, '').replace(/data-correct="[^"]*"/g, '').replace(/id="[^"]*"/g, '').replace(/<button/g, '<div style="padding: 1rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; margin-top: 0.5rem;"').replace(/<\/button/g, '</div').trim();
+            
+            copyTarget.value = cleanHTML;
+            copyTarget.select();
+            
+            try {
+                document.execCommand('copy');
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                    <span>복사 완료!</span>`;
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('클립보드 복사 실패:', err);
+                alert('HTML을 복사하는 데 실패했습니다.');
+            }
+        }
+
+        // Event Listeners
+        function addOptionListeners() {
+            optionBtns = document.querySelectorAll('.option-btn');
+            optionBtns.forEach(btn => {
+                btn.addEventListener('click', handleOptionClick);
+            });
+        }
+        
+        addOptionListeners();
+        resetBtn.addEventListener('click', () => resetQuiz(true));
+        copyBtn.addEventListener('click', copyToClipboard);
+        aiExplainBtn.addEventListener('click', getAiExplanation);
+        aiNextQuestionBtn.addEventListener('click', generateNextQuestion);
+
+    </script>
+</body>
+</html>
+
